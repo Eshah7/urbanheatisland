@@ -209,6 +209,10 @@
     .scroll-section {
       position: relative;
     }
+    
+    #map-scroll-section {
+      width: 100%;
+    }
 
     .scroll-sticky-container {
       display: flex;
@@ -267,14 +271,25 @@
       height: calc(100vh - 120px);
     }
 
+    .scroll-visual > div { height: 100%; width: 100%; }
+
+
     /* ── Map ──────────────────────────────────────────────────── */
     #map {
       width: 100%;
-      height: 100%;
-      min-height: 340px;
+      height: calc(100vh - 120px);
+      min-height: 360px;
       border-radius: 12px;
       overflow: hidden;
       background: #111;
+    }
+
+    #equity-map {
+      width: 100%;
+      height: 480px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 40px;
     }
 
     .map-legend {
@@ -375,14 +390,6 @@
     }
 
     #equity-section .section { padding-top: 0; padding-bottom: 0; }
-
-    #equity-map {
-      width: 100%;
-      height: 480px;
-      border-radius: 12px;
-      overflow: hidden;
-      margin-top: 40px;
-    }
 
     .neighborhood-callouts {
       display: grid;
@@ -720,17 +727,20 @@
 
     /* ── Responsive ───────────────────────────────────────────── */
     @media (max-width: 800px) {
+      /* Scrollytelling section */
+      #map-scroll-section { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+      
       /* Hero */
       .hero-stat-row { gap: 24px; }
       .hero-stat .num { font-size: 1.8rem; }
 
-      /* Scrollytelling map: stack steps above map */
-      .scroll-sticky-container { flex-direction: column; }
-      .scroll-steps { width: 100%; padding: 0 16px; }
+      /* Scrollytelling map: map first, then steps below */
+      .scroll-sticky-container { flex-direction: column; width: 100%; }
+      .scroll-steps { width: 100%; padding: 0 16px; order: 2; }
       .scroll-step { min-height: auto; padding: 32px 0; }
-      .scroll-visual { position: relative; top: 0; height: auto; padding: 0 0 24px; }
-      .scroll-visual > div { height: 340px !important; min-height: 340px !important; }
-      #map { height: 340px !important; min-height: 340px !important; }
+      .scroll-visual { position: relative; top: 0; flex: none; width: 100%; height: 360px; padding: 0; order: 1; }
+      .scroll-visual > div { width: 100%; height: 360px !important; }
+      #map { width: 100%; height: 360px !important; }
 
       /* Section padding */
       .section { padding: 60px 16px; }
@@ -903,9 +913,9 @@
       </div>
     </div>
 
-    <div class="scroll-visual" style="padding: 0 0 80px 0;">
-      <div style="position:relative; width:100%; height:100%; min-height:340px;">
-        <div id="map" style="height:100%; min-height:340px;"></div>
+    <div class="scroll-visual">
+      <div style="position:relative; width:100%;">
+        <div id="map"></div>
         <div class="map-legend">
           <div class="legend-title">Surface Temp (°C)</div>
           <div class="legend-gradient"></div>
@@ -1210,33 +1220,51 @@ function animCount(el, from, to, suffix) {
 /* ================================================================
    MAP (Leaflet + Canvas circles)
    ================================================================ */
-let leafletMap, canvasLayer, allPoints;
+let leafletMap, canvasLayer, allPoints, pendingMapMode = 'all';
 const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const TILE_ATTR = '&copy; <a href="https://carto.com/">CARTO</a>';
 
 function buildMap(d) {
   allPoints = d;
+  const mapEl = document.getElementById('map');
 
-  leafletMap = L.map('map', {
-    center: [43.72, -79.38],
-    zoom: 10,
-    zoomControl: true,
-    scrollWheelZoom: false,
-    attributionControl: false,
-  });
+  function doLeafletInit() {
+    if (leafletMap) return;
+    
+    // Ensure container has dimensions before initializing
+    const container = document.getElementById('map');
+    if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+      setTimeout(doLeafletInit, 200);
+      return;
+    }
 
-  L.tileLayer(TILE_URL, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(leafletMap);
-  L.control.attribution({ prefix: false, position: 'bottomleft' }).addTo(leafletMap);
+    leafletMap = L.map('map', {
+      center: [43.72, -79.38],
+      zoom: 10,
+      zoomControl: true,
+      scrollWheelZoom: false,
+      attributionControl: false,
+    });
 
-  canvasLayer = L.layerGroup().addTo(leafletMap);
-  renderMapPoints(d, 'all');
+    L.tileLayer(TILE_URL, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(leafletMap);
+    L.control.attribution({ prefix: false, position: 'bottomleft' }).addTo(leafletMap);
 
-  // Recalculate size after layout settles (needed on mobile)
-  setTimeout(() => leafletMap.invalidateSize(), 100);
-  setTimeout(() => leafletMap.invalidateSize(), 600);
+    canvasLayer = L.layerGroup().addTo(leafletMap);
+    renderMapPoints(allPoints, pendingMapMode);
+
+    setTimeout(() => {
+      leafletMap.invalidateSize();
+      leafletMap.setView([43.72, -79.38], 10);
+    }, 100);
+  }
+
+  // Delay init longer to ensure CSS has resolved and the container has dimensions
+  setTimeout(doLeafletInit, 800);
 }
 
 function renderMapPoints(pts, mode) {
+  // Guard: if Leaflet isn't ready yet, just remember the mode for when it initializes
+  if (!leafletMap) { pendingMapMode = mode; return; }
   canvasLayer.clearLayers();
 
   // Use Canvas renderer for performance
@@ -1474,72 +1502,81 @@ const TORONTO_NEIGHBOURHOODS = [
 ];
 
 function buildEquityMap(d) {
-  const eMap = L.map('equity-map', {
-    center: [43.72, -79.38],
-    zoom: 10,
-    zoomControl: true,
-    scrollWheelZoom: false,
-    attributionControl: false,
-  });
+  // Delay to ensure DOM is ready on mobile
+  setTimeout(() => {
+    const container = document.getElementById('equity-map');
+    if (!container || container.offsetWidth === 0) return;
+    
+    const eMap = L.map('equity-map', {
+      center: [43.72, -79.38],
+      zoom: 10,
+      zoomControl: true,
+      scrollWheelZoom: false,
+      attributionControl: false,
+    });
+    
+    // Store reference globally for resize handler
+    window.eMap = eMap;
 
-  L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19 }).addTo(eMap);
+    L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19 }).addTo(eMap);
 
-  // Heat dots (small, subtle)
-  const renderer = L.canvas({ padding: 0.5 });
-  const sample = d.length > 1500 ? d3.shuffle(d.slice()).slice(0, 1500) : d;
-  sample.forEach(p => {
-    L.circleMarker([p.lat, p.lon], {
-      radius: 2.5,
-      fillColor: tempColor(p.lst_celsius),
-      fillOpacity: 0.35,
-      color: 'transparent',
-      renderer,
-    }).addTo(eMap);
-  });
-
-  // Neighbourhood markers
-  TORONTO_NEIGHBOURHOODS.forEach(n => {
-    const color = n.hot ? '#e34a33' : '#52b788';
-    const icon = L.divIcon({
-      html: `<div style="
-        width:12px;height:12px;border-radius:50%;
-        background:${color};border:2px solid rgba(255,255,255,0.4);
-        box-shadow:0 0 0 4px ${color}33;
-      "></div>`,
-      className: '',
-      iconSize: [12, 12],
+    // Heat dots (small, subtle)
+    const renderer = L.canvas({ padding: 0.5 });
+    const sample = d.length > 1500 ? d3.shuffle(d.slice()).slice(0, 1500) : d;
+    sample.forEach(p => {
+      L.circleMarker([p.lat, p.lon], {
+        radius: 2.5,
+        fillColor: tempColor(p.lst_celsius),
+        fillOpacity: 0.35,
+        color: 'transparent',
+        renderer,
+      }).addTo(eMap);
     });
 
-    L.marker([n.lat, n.lon], { icon })
-      .bindPopup(`
-        <div style="font-family:Inter,sans-serif;padding:4px;min-width:200px;">
-          <strong style="font-size:13px;color:${color}">${n.name}</strong><br>
-          <span style="font-size:11px;color:#ccc;line-height:1.5">${n.desc}</span>
-        </div>
-      `, { maxWidth: 240 })
-      .addTo(eMap);
-  });
+    // Neighbourhood markers
+    TORONTO_NEIGHBOURHOODS.forEach(n => {
+      const color = n.hot ? '#e34a33' : '#52b788';
+      const icon = L.divIcon({
+        html: `<div style="
+          width:12px;height:12px;border-radius:50%;
+          background:${color};border:2px solid rgba(255,255,255,0.4);
+          box-shadow:0 0 0 4px ${color}33;
+        "></div>`,
+        className: '',
+        iconSize: [12, 12],
+      });
 
-  // Cards below map
-  const container = document.getElementById('nbhd-cards');
-  TORONTO_NEIGHBOURHOODS.forEach(n => {
-    const radLat = 0.06, radLon = 0.08;
-    const close = d.filter(p =>
-      Math.abs(p.lat - n.lat) < radLat &&
-      Math.abs(p.lon - n.lon) < radLon &&
-      p.land_type === n.filterType
-    );
-    const estTemp = close.length > 0 ? avg(close, 'lst_celsius') : null;
+      L.marker([n.lat, n.lon], { icon })
+        .bindPopup(`
+          <div style="font-family:Inter,sans-serif;padding:4px;min-width:200px;">
+            <strong style="font-size:13px;color:${color}">${n.name}</strong><br>
+            <span style="font-size:11px;color:#ccc;line-height:1.5">${n.desc}</span>
+          </div>
+        `, { maxWidth: 240 })
+        .addTo(eMap);
+    });
 
-    const card = document.createElement('div');
-    card.className = 'nbhd-card';
-    card.innerHTML = `
-      <div class="nbhd-name">${n.name}</div>
-      <div class="nbhd-temp ${n.hot ? 'hot' : 'cool'}">${estTemp !== null ? fmt(estTemp) : 'No data nearby'}</div>
-      <div class="nbhd-desc">${n.desc}</div>
-    `;
-    container.appendChild(card);
-  });
+    // Cards below map
+    const nbhdContainer = document.getElementById('nbhd-cards');
+    TORONTO_NEIGHBOURHOODS.forEach(n => {
+      const radLat = 0.06, radLon = 0.08;
+      const close = d.filter(p =>
+        Math.abs(p.lat - n.lat) < radLat &&
+        Math.abs(p.lon - n.lon) < radLon &&
+        p.land_type === n.filterType
+      );
+      const estTemp = close.length > 0 ? avg(close, 'lst_celsius') : null;
+
+      const card = document.createElement('div');
+      card.className = 'nbhd-card';
+      card.innerHTML = `
+        <div class="nbhd-name">${n.name}</div>
+        <div class="nbhd-temp ${n.hot ? 'hot' : 'cool'}">${estTemp !== null ? fmt(estTemp) : 'No data nearby'}</div>
+        <div class="nbhd-desc">${n.desc}</div>
+      `;
+      nbhdContainer.appendChild(card);
+    });
+  }, 800);
 }
 
 /* ================================================================
@@ -1731,6 +1768,21 @@ style.textContent = `
   .leaflet-popup-close-button { color: #888 !important; }
 `;
 document.head.appendChild(style);
+
+/* ── Resize handler ───────────────────────────────────────────── */
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (leafletMap) {
+      leafletMap.invalidateSize();
+    }
+    // Equity map stored as eMap in buildEquityMap scope - we'll track it
+    if (window.eMap) {
+      window.eMap.invalidateSize();
+    }
+  }, 200);
+});
 
 /* ── Kick off ─────────────────────────────────────────────────── */
 init();
