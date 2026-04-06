@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toronto Urban Heat Island: Summer 2024</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg2: #111111;
+      --bg3: #161616;
+      --text: #f0ede8;
+      --text-muted: #888580;
+      --heat-1: #fef0d9;
+      --heat-2: #fdcc8a;
+      --heat-3: #fc8d59;
+      --heat-4: #e34a33;
+      --heat-5: #b30000;
+      --cool: #52b788;
+      --cool-dark: #2d6a4f;
+      --water: #264653;
+      --accent: #fc8d59;
+      --border: rgba(255,255,255,0.07);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────── */
+    #hero {
+      position: relative;
+      height: 100vh;
+      min-height: 600px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+      background: radial-gradient(ellipse at 60% 40%, #3d0c02 0%, #1a0400 40%, #0a0a0a 100%);
+    }
+
+    /* Heat shimmer rings */
+    .shimmer-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(252,141,89,0.12);
+      animation: shimmer 4s ease-in-out infinite;
+    }
+    .shimmer-ring:nth-child(1) { width: 300px; height: 300px; animation-delay: 0s; }
+    .shimmer-ring:nth-child(2) { width: 550px; height: 550px; animation-delay: 0.8s; }
+    .shimmer-ring:nth-child(3) { width: 800px; height: 800px; animation-delay: 1.6s; }
+    .shimmer-ring:nth-child(4) { width: 1100px; height: 1100px; animation-delay: 2.4s; }
+
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.04); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 780px;
+      padding: 0 24px;
+    }
+
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
+
+    .hero-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 24px;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      color: var(--heat-3);
+    }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .hero-stat-row {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      margin-bottom: 52px;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat .num {
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: var(--heat-3);
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-stat .label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      animation: bounce 2s ease-in-out infinite;
+      z-index: 2;
+    }
+
+    .scroll-hint svg { opacity: 0.5; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(6px); }
+    }
+
+    /* ── Section shell ────────────────────────────────────────── */
+    .section {
+      padding: 100px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .section-body {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      line-height: 1.75;
+      margin-bottom: 40px;
+    }
+
+    .section-body strong { color: var(--text); }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ── Scrollytelling layout ────────────────────────────────── */
+    .scroll-section {
+      position: relative;
+    }
+
+    .scroll-sticky-container {
+      display: flex;
+      gap: 0;
+      align-items: flex-start;
+    }
+
+    .scroll-steps {
+      width: 380px;
+      flex-shrink: 0;
+      padding: 0 48px 0 24px;
+    }
+
+    .scroll-step {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px 0;
+      opacity: 0.25;
+      transition: opacity 0.4s ease;
+    }
+
+    .scroll-step.is-active { opacity: 1; }
+
+    .step-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .step-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+
+    .step-body {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .step-body strong { color: var(--text); }
+
+    .scroll-visual {
+      flex: 1;
+      position: sticky;
+      top: 60px;
+      height: calc(100vh - 120px);
+    }
+
+    /* ── Map ──────────────────────────────────────────────────── */
+    #map {
+      width: 100%;
+      height: 100%;
+      min-height: 340px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #111;
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 11px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .map-legend .legend-title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 9px;
+    }
+
+    .legend-gradient {
+      width: 120px;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #4575b4, #91bfdb, #ffffbf, #fc8d59, #d73027);
+      margin-bottom: 4px;
+    }
+
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    /* ── Charts container ─────────────────────────────────────── */
+    .chart-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Stat callout ─────────────────────────────────────────── */
+    .stat-callout {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--heat-3);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 16px 0;
+      display: inline-flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-callout .big { font-size: 2rem; font-weight: 900; color: var(--heat-3); letter-spacing: -0.03em; line-height: 1; }
+    .stat-callout .desc { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ── Scatter section ──────────────────────────────────────── */
+    #scatter-section {
+      background: var(--bg2);
+      padding: 100px 0;
+    }
+
+    #scatter-section .section { padding-top: 0; padding-bottom: 0; }
+
+    .scatter-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    #scatter-svg {
+      width: 100%;
+      height: 420px;
+    }
+
+    /* ── Bar chart section ────────────────────────────────────── */
+    #bar-section { padding: 100px 24px; max-width: 1100px; margin: 0 auto; }
+
+    #bar-chart {
+      width: 100%;
+      margin-top: 40px;
+    }
+
+    /* ── Equity section ───────────────────────────────────────── */
+    #equity-section {
+      background: var(--bg3);
+      padding: 100px 0;
+    }
+
+    #equity-section .section { padding-top: 0; padding-bottom: 0; }
+
+    #equity-map {
+      width: 100%;
+      height: 480px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 40px;
+    }
+
+    .neighborhood-callouts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .nbhd-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+
+    .nbhd-card .nbhd-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .nbhd-card .nbhd-temp {
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .nbhd-card .nbhd-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+    .hot { color: var(--heat-4); }
+    .cool { color: var(--cool); }
+
+    /* ── Calculator section ───────────────────────────────────── */
+    #calc-section {
+      padding: 100px 24px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .calc-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 40px;
+    }
+
+    .calc-filters {
+      display: flex;
+      gap: 24px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .pill-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .pill {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .pill:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .pill.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+    .actions-list { display: flex; flex-direction: column; }
+
+    .action-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+
+    .action-item:last-child { border-bottom: none; }
+    .action-item:hover { background: rgba(255,255,255,0.03); }
+    .action-item.selected { background: rgba(82,183,136,0.06); }
+    .action-item input[type="checkbox"] { display: none; }
+
+    .check-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .action-item.selected .check-box { background: var(--cool); border-color: var(--cool); }
+    .check-icon { display: none; }
+    .action-item.selected .check-icon { display: block; }
+
+    .action-meta { flex: 1; min-width: 0; }
+    .action-name { font-size: 0.88rem; font-weight: 500; color: var(--text); }
+    .action-hint { font-size: 0.74rem; color: var(--text-muted); margin-top: 1px; }
+
+    .action-saving {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--cool);
+      white-space: nowrap;
+      opacity: 0.8;
+    }
+
+    /* Results bar */
+    .calc-results-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-top: 1px solid var(--border);
+      background: var(--bg3);
+    }
+
+    .res-cell {
+      padding: 16px 20px;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .res-cell:last-child { border-right: none; }
+
+    .res-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .res-lbl {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 3px;
+    }
+
+    .temp-val { color: var(--heat-3); }
+    .save-val { color: var(--cool); }
+    .co2-val  { color: #7eb8d4; }
+
+    .calc-cta {
+      display: flex;
+      gap: 8px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .cta-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.76rem;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .cta-link:hover { border-color: var(--cool); color: var(--cool); }
+    .cta-link svg { flex-shrink: 0; }
+
+    /* ── Big stat banner ──────────────────────────────────────── */
+    #stats-banner {
+      background: linear-gradient(135deg, #1a0400 0%, #0a0a0a 50%, #001a0f 100%);
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .stats-banner-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .banner-stats {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
+      margin: 48px 0;
+    }
+
+    .banner-stat .n {
+      font-size: clamp(2.8rem, 6vw, 4.8rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .banner-stat .n.hot-n { color: var(--heat-4); }
+    .banner-stat .n.cool-n { color: var(--cool); }
+    .banner-stat .n.diff-n { color: #fff; }
+
+    .banner-stat .lbl {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+
+    footer p + p { margin-top: 8px; }
+
+    footer a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
+    footer a:hover { color: var(--text); }
+
+    /* ── Loading overlay ──────────────────────────────────────── */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.6s ease;
+    }
+
+    #loading.fade-out { opacity: 0; pointer-events: none; }
+
+    .loader-ring {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      border-top-color: var(--heat-3);
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading p { font-size: 0.82rem; color: var(--text-muted); letter-spacing: 0.06em; }
+
+    /* ── No-data message ──────────────────────────────────────── */
+    .no-data-msg {
+      display: none;
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+    }
+
+    .no-data-msg.visible { display: block; }
+
+    .no-data-msg h3 { font-size: 1.2rem; color: var(--text); margin-bottom: 12px; }
+
+    .no-data-msg code {
+      display: inline-block;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 20px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      color: var(--heat-2);
+      margin: 16px 0;
+    }
+
+    /* ── How to read callout ──────────────────────────────────── */
+    .how-to-read {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      max-width: 420px;
+    }
+
+    .how-to-read strong { color: var(--text); }
+
+    .how-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--heat-3);
+      flex-shrink: 0;
+      box-shadow: 0 0 6px var(--heat-3);
+    }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 800px) {
+      /* Hero */
+      .hero-stat-row { gap: 24px; }
+      .hero-stat .num { font-size: 1.8rem; }
+
+      /* Scrollytelling map: stack steps above map */
+      .scroll-sticky-container { flex-direction: column; }
+      .scroll-steps { width: 100%; padding: 0 16px; }
+      .scroll-step { min-height: auto; padding: 32px 0; }
+      .scroll-visual { position: relative; top: 0; height: auto; padding: 0 0 24px; }
+      .scroll-visual > div { height: 340px !important; min-height: 340px !important; }
+      #map { height: 340px !important; min-height: 340px !important; }
+
+      /* Section padding */
+      .section { padding: 60px 16px; }
+      #bar-section { padding: 60px 16px; }
+      #calc-section { padding: 60px 16px; }
+
+      /* Scatter: stack */
+      .scatter-layout { grid-template-columns: 1fr; gap: 32px; }
+      #scatter-svg { height: 75vw; min-height: 340px; width: 100%; }
+
+      /* Neighbourhood cards: 1 column */
+      .neighborhood-callouts { grid-template-columns: 1fr 1fr; }
+
+      /* Calculator card filters: wrap naturally */
+      .calc-filters { gap: 12px; padding: 14px 16px; }
+      .filter-group { flex-wrap: wrap; }
+
+      /* Results bar: stack into 3 equal cells but smaller text */
+      .calc-results-bar { grid-template-columns: 1fr 1fr 1fr; }
+      .res-val { font-size: 1.1rem; }
+      .res-cell { padding: 12px 8px; }
+
+      /* CTA links: wrap */
+      .calc-cta { gap: 6px; }
+
+      /* Banner stats */
+      .banner-stats { gap: 28px; }
+      .banner-stat .n { font-size: 2.4rem; }
+
+      /* Footer */
+      footer { padding: 32px 16px; font-size: 0.76rem; }
+    }
+
+    @media (max-width: 480px) {
+      /* Hero */
+      .hero-stat-row { gap: 16px; }
+      .hero-stat .num { font-size: 1.5rem; }
+
+      /* Section titles */
+      .section-title { font-size: 1.6rem; }
+
+      /* Neighbourhood cards: single column on very small screens */
+      .neighborhood-callouts { grid-template-columns: 1fr; }
+
+      /* Results bar: stack vertically */
+      .calc-results-bar { grid-template-columns: 1fr; }
+      .res-cell { border-right: none; border-bottom: 1px solid var(--border); }
+      .res-cell:last-child { border-bottom: none; }
+
+      /* Equity map shorter */
+      #equity-map { height: 320px; }
+
+      /* Scatter shorter */
+      #scatter-svg { height: 260px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .shimmer-ring, .scroll-hint, .loader-ring { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Loading overlay ────────────────────────────────────────── -->
+<div id="loading">
+  <div class="loader-ring"></div>
+  <p>Loading satellite data…</p>
+</div>
+
+<!-- ── Hero ───────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="shimmer-ring"></div>
+  <div class="shimmer-ring"></div>
+  <div class="shimmer-ring"></div>
+  <div class="shimmer-ring"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Toronto · Summer 2024 · Landsat 8/9 Satellite Data</div>
+    <h1 class="hero-title">Toronto is Getting <em>Hotter</em>,<br>But Not Equally</h1>
+    <p class="hero-sub">
+      Across Toronto's neighbourhoods, surface temperatures vary by up to
+      <strong style="color:var(--text)">10°C</strong>, shaped not by weather,
+      but by concrete, trees, and decades of unequal investment.
+    </p>
+
+    <div class="hero-stat-row">
+      <div class="hero-stat">
+        <div class="num" id="hero-max">—</div>
+        <div class="label">Peak surface temp</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num" style="color:var(--cool)" id="hero-min">—</div>
+        <div class="label">Coolest recorded</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num" style="color:#fff" id="hero-diff">—</div>
+        <div class="label">Difference</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll to explore</span>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 3v10M3 9l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Section 1: Scrollytelling Map ──────────────────────────── -->
+<section class="scroll-section" id="map-scroll-section" style="padding: 0 24px; max-width: 1200px; margin: 0 auto;">
+  <div style="padding: 80px 0 40px;">
+    <div class="section-label">01 · The Heat Map</div>
+    <h2 class="section-title">Where Does the Heat Collect?</h2>
+    <p class="section-body">
+      Scroll down to peel back the layers and see where heat collects across the city.
+    </p>
+    <div class="how-to-read">
+      <span class="how-dot"></span>
+      <span><strong>Each dot = one 100m² pixel</strong> from NASA's Landsat 8/9 satellite, summer 2024. Colour = surface temperature.</span>
+    </div>
+  </div>
+
+  <div class="scroll-sticky-container">
+    <div class="scroll-steps" id="map-steps">
+      <div class="scroll-step is-active" data-step="0">
+        <div class="step-num">Step 01</div>
+        <h3 class="step-title">The Full Picture</h3>
+        <p class="step-body">
+          5,000 sampled points across the Greater Toronto Area.
+          Warmer reds cluster around the downtown core, industrial
+          corridors, and Etobicoke's commercial strips.
+        </p>
+        <div class="stat-callout">
+          <span class="big" id="step0-avg">—</span>
+          <span class="desc">Average surface temperature, all land cover</span>
+        </div>
+      </div>
+
+      <div class="scroll-step" data-step="1">
+        <div class="step-num">Step 02</div>
+        <h3 class="step-title">Concrete Traps Heat</h3>
+        <p class="step-body">
+          Filtering to <strong>urban / pavement</strong> surfaces reveals
+          the heat engine beneath the city. Parking lots, rooftops, and
+          asphalt hold heat long after the sun sets, a phenomenon
+          called the <em>urban heat island effect</em>.
+        </p>
+        <div class="stat-callout">
+          <span class="big" id="step1-avg">—</span>
+          <span class="desc">Average surface temp on urban / pavement</span>
+        </div>
+      </div>
+
+      <div class="scroll-step" data-step="2">
+        <div class="step-num">Step 03</div>
+        <h3 class="step-title">Forests Are Natural Air Conditioners</h3>
+        <p class="step-body">
+          Switch to <strong>dense vegetation</strong>: ravines, High Park,
+          the Scarborough Bluffs greenspace. Temperatures drop
+          dramatically. Trees shade surfaces and release water vapour,
+          cooling the air around them by up to <strong>5°C</strong>.
+        </p>
+        <div class="stat-callout" style="border-left-color: var(--cool);">
+          <span class="big" style="color:var(--cool)" id="step2-avg">—</span>
+          <span class="desc">Average surface temp in dense vegetation</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-visual" style="padding: 0 0 80px 0;">
+      <div style="position:relative; width:100%; height:100%; min-height:340px;">
+        <div id="map" style="height:100%; min-height:340px;"></div>
+        <div class="map-legend">
+          <div class="legend-title">Surface Temp (°C)</div>
+          <div class="legend-gradient"></div>
+          <div class="legend-labels"><span>Cool</span><span>Hot</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Section 2: Scatter plot ────────────────────────────────── -->
+<section id="scatter-section">
+  <div class="section" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="scatter-layout">
+      <div>
+        <div class="section-label">02 · Vegetation &amp; Temperature</div>
+        <h2 class="section-title">More Green = More Cool</h2>
+        <p class="section-body">
+          The <strong>NDVI</strong> (Normalized Difference Vegetation Index)
+          measures how much living vegetation a satellite pixel contains,
+          from bare concrete (near 0) to lush forest (near 1).
+          The inverse relationship with temperature is stark and consistent.
+        </p>
+
+        <div class="stat-callout">
+          <span class="big">~1.5°C</span>
+          <span class="desc">cooler for every 0.1 increase in vegetation coverage</span>
+        </div>
+
+        <p class="section-body" style="margin-top: 20px; margin-bottom: 0;">
+          Each point is a 100m patch of Toronto. The red band shows the
+          regression: a nearly 20°C spread from asphalt to forest.
+        </p>
+      </div>
+      <div>
+        <svg id="scatter-svg"></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Section 3: Bar chart ───────────────────────────────────── -->
+<div id="bar-section">
+  <div class="section-label">03 · Land Type Comparison</div>
+  <h2 class="section-title">The Numbers Tell the Story</h2>
+  <p class="section-body">
+    When we group every satellite pixel by its land cover type, the
+    temperature hierarchy becomes unavoidable. Urban surfaces don't just
+    feel hotter. They <em>are</em> measurably, consistently hotter.
+  </p>
+  <div id="bar-chart"></div>
+</div>
+
+<hr class="divider" />
+
+<!-- ── Section 4: Equity map ──────────────────────────────────── -->
+<section id="equity-section">
+  <div class="section" style="padding-top: 80px; padding-bottom: 80px;">
+    <div class="section-label">04 · Heat Equity</div>
+    <h2 class="section-title">Who Bears the Burden?</h2>
+    <p class="section-body">
+      Heat doesn't distribute randomly. Areas with <strong>less tree canopy,
+      more pavement, and higher density</strong> run hotter, and these
+      areas often overlap with lower-income communities that also have
+      less access to air conditioning and cooling centres.
+    </p>
+
+    <div id="equity-map"></div>
+
+    <div class="neighborhood-callouts" id="nbhd-cards"></div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Section 5: Calculator ──────────────────────────────────── -->
+<section id="calc-section">
+  <div class="section-label">05 · Take Action</div>
+  <h2 class="section-title">What Can Homeowners Do?</h2>
+  <p class="section-body">
+    Every tree planted, every cool roof installed, and every permeable
+    surface added chips away at the urban heat island. Calculate your
+    personal impact and potential savings.
+  </p>
+
+  <div class="calc-card">
+    <!-- Filters row -->
+    <div class="calc-filters">
+      <div class="filter-group">
+        <span class="filter-label">Home</span>
+        <div class="pill-group" id="home-type-btns">
+          <button class="pill active" data-val="detached">Detached</button>
+          <button class="pill" data-val="semi">Semi</button>
+          <button class="pill" data-val="condo">Condo</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Lot</span>
+        <div class="pill-group" id="lot-size-btns">
+          <button class="pill" data-val="small">Small</button>
+          <button class="pill active" data-val="medium">Medium</button>
+          <button class="pill" data-val="large">Large</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions list -->
+    <div class="actions-list" id="actions-list"></div>
+
+    <!-- Results bar -->
+    <div class="calc-results-bar">
+      <div class="res-cell">
+        <div class="res-val save-val" id="result-savings">$0/yr</div>
+        <div class="res-lbl">Est. AC savings</div>
+      </div>
+      <div class="res-cell">
+        <div class="res-val temp-val" id="result-temp">0°C</div>
+        <div class="res-lbl">Temp reduction</div>
+      </div>
+      <div class="res-cell">
+        <div class="res-val co2-val" id="result-co2">0 kg</div>
+        <div class="res-lbl">CO₂ offset / yr</div>
+      </div>
+    </div>
+
+    <!-- CTA links -->
+    <div class="calc-cta">
+      <a class="cta-link" href="https://www.toronto.ca/city-government/accountability-operations-customer-service/long-term-vision-plans-and-strategies/toronto-biodiversity-strategy/urban-forest/" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm.5 7.5h-1V5h1v3.5zm0-4.5h-1V3h1v1z" fill="currentColor"/></svg>
+        Tree Canopy Program
+      </a>
+      <a class="cta-link" href="https://www.toronto.ca/services-payments/water-environment/managing-rain-melting-snow/green-roofs/" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm.5 7.5h-1V5h1v3.5zm0-4.5h-1V3h1v1z" fill="currentColor"/></svg>
+        Green Roof Bylaw
+      </a>
+      <a class="cta-link" href="https://www.toronto.ca/community-people/health-wellness-care/health-programs-advice/hot-weather-health/" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm.5 7.5h-1V5h1v3.5zm0-4.5h-1V3h1v1z" fill="currentColor"/></svg>
+        Cooling Centres
+      </a>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Stats banner ────────────────────────────────────────────── -->
+<div id="stats-banner">
+  <div class="stats-banner-inner">
+    <div class="section-label" style="display:inline-block">The Bottom Line</div>
+    <h2 class="section-title" style="text-align:center; margin-top:12px;">
+      Toronto's Heat Divide, by the Numbers
+    </h2>
+
+    <div class="banner-stats">
+      <div class="banner-stat">
+        <div class="n hot-n" id="banner-urban">—</div>
+        <div class="lbl">Avg. urban surface temp</div>
+      </div>
+      <div class="banner-stat">
+        <div class="n cool-n" id="banner-veg">—</div>
+        <div class="lbl">Avg. dense vegetation temp</div>
+      </div>
+      <div class="banner-stat">
+        <div class="n diff-n" id="banner-gap">—</div>
+        <div class="lbl">Temperature gap</div>
+      </div>
+    </div>
+
+    <p style="color:var(--text-muted); max-width:600px; margin:0 auto; font-size:0.92rem; line-height:1.75;">
+      That gap isn't natural. It's the cumulative result of where trees
+      were planted, which streets were paved, and which communities
+      received green infrastructure investment. Reducing it is possible,
+      but it requires intentional action at every scale.
+    </p>
+  </div>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────── -->
+<footer>
+  <p>
+    <strong style="color:var(--text)">Toronto Urban Heat Island</strong> &nbsp;·&nbsp;
+    Built with Landsat 8/9 satellite imagery via
+    <a href="https://earthengine.google.com/" target="_blank" rel="noopener">Google Earth Engine</a>
+  </p>
+  <p>
+    Data: Summer 2024 (June – August) · Scale: 100m · Sample: ~5,000 pixels ·
+    Bands: ST_B10 (thermal), SR_B4, SR_B5 (NDVI)
+  </p>
+  <p>
+    Analysis by Esha Shah ·
+    <a href="https://open.toronto.ca/" target="_blank" rel="noopener">Toronto Open Data</a> ·
+    <a href="https://schoolofcities.github.io/heat-vulnerability-toronto/" target="_blank" rel="noopener">School of Cities Heat Vulnerability</a>
+  </p>
+</footer>
+
+<!-- ── No-data fallback (shown if JSON missing) ───────────────── -->
+<div class="no-data-msg" id="no-data-msg">
+  <h3>Data file not found</h3>
+  <p>Run the Python notebook to generate the data file, then refresh:</p>
+  <code>marimo run "Urban Heat Island Data 2024 Export.py"</code>
+  <p style="margin-top:8px; color:var(--text-muted); font-size:0.82rem;">
+    The site will auto-populate once <code style="background:none; border:none; color:var(--heat-2); padding:0; font-size:inherit;">data/toronto_uhi_2024.json</code> exists.
+  </p>
+</div>
+
+<!-- ── Scripts ────────────────────────────────────────────────── -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://unpkg.com/scrollama@3.2.0/build/scrollama.min.js"></script>
+
+<script>
+/* ================================================================
+   DATA & COLOUR HELPERS
+   ================================================================ */
+const HEAT_SCALE = d3.scaleSequential()
+  .domain([20, 45])
+  .interpolator(d3.interpolateRgbBasis(['#4575b4','#91bfdb','#ffffbf','#fc8d59','#d73027']));
+
+const LAND_COLOR = {
+  'Urban / Pavement': '#e34a33',
+  'Sparse Vegetation': '#fdcc8a',
+  'Dense Vegetation': '#52b788',
+};
+
+function tempColor(t) { return HEAT_SCALE(t); }
+function fmt(v) { return v.toFixed(1) + '°C'; }
+function avg(arr, key) { return arr.reduce((s,d) => s + d[key], 0) / arr.length; }
+
+/* ================================================================
+   LOAD DATA
+   ================================================================ */
+async function init() {
+  let data;
+  try {
+    data = await d3.json('data/toronto_uhi_2024.json');
+    if (!data || data.length === 0) throw new Error('empty');
+  } catch(e) {
+    document.getElementById('loading').classList.add('fade-out');
+    document.getElementById('no-data-msg').classList.add('visible');
+    return;
+  }
+
+  // Filter out water and sub-20°C
+  const d = data.filter(p => p.land_type !== 'Water' && p.lst_celsius > 20);
+
+  buildHero(d);
+  buildMap(d);
+  buildScatter(d);
+  buildBarChart(d);
+  buildEquityMap(d);
+  buildCalculator();
+  buildBannerStats(d);
+  initScrollama(d);
+
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('fade-out');
+  }, 500);
+}
+
+
+/* ================================================================
+   HERO STATS
+   ================================================================ */
+function buildHero(d) {
+  const temps = d.map(p => p.lst_celsius);
+  const mx = d3.max(temps);
+  const mn = d3.min(temps);
+  animCount(document.getElementById('hero-max'), 0, mx, '°C');
+  animCount(document.getElementById('hero-min'), 0, mn, '°C');
+  animCount(document.getElementById('hero-diff'), 0, mx - mn, '°C');
+
+  const urban = d.filter(p => p.land_type === 'Urban / Pavement');
+  const veg   = d.filter(p => p.land_type === 'Dense Vegetation');
+  const all   = d;
+
+  if (document.getElementById('step0-avg'))
+    document.getElementById('step0-avg').textContent = fmt(avg(all, 'lst_celsius'));
+  if (document.getElementById('step1-avg') && urban.length)
+    document.getElementById('step1-avg').textContent = fmt(avg(urban, 'lst_celsius'));
+  if (document.getElementById('step2-avg') && veg.length)
+    document.getElementById('step2-avg').textContent = fmt(avg(veg, 'lst_celsius'));
+}
+
+function animCount(el, from, to, suffix) {
+  const dur = 1400, fps = 60, frames = dur / (1000 / fps);
+  let frame = 0;
+  const ease = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+  const tick = () => {
+    frame++;
+    const v = from + (to - from) * ease(frame / frames);
+    el.textContent = v.toFixed(1) + suffix;
+    if (frame < frames) requestAnimationFrame(tick);
+    else el.textContent = to.toFixed(1) + suffix;
+  };
+  setTimeout(() => requestAnimationFrame(tick), 600);
+}
+
+/* ================================================================
+   MAP (Leaflet + Canvas circles)
+   ================================================================ */
+let leafletMap, canvasLayer, allPoints;
+const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const TILE_ATTR = '&copy; <a href="https://carto.com/">CARTO</a>';
+
+function buildMap(d) {
+  allPoints = d;
+
+  leafletMap = L.map('map', {
+    center: [43.72, -79.38],
+    zoom: 10,
+    zoomControl: true,
+    scrollWheelZoom: false,
+    attributionControl: false,
+  });
+
+  L.tileLayer(TILE_URL, { attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(leafletMap);
+  L.control.attribution({ prefix: false, position: 'bottomleft' }).addTo(leafletMap);
+
+  canvasLayer = L.layerGroup().addTo(leafletMap);
+  renderMapPoints(d, 'all');
+
+  // Recalculate size after layout settles (needed on mobile)
+  setTimeout(() => leafletMap.invalidateSize(), 100);
+  setTimeout(() => leafletMap.invalidateSize(), 600);
+}
+
+function renderMapPoints(pts, mode) {
+  canvasLayer.clearLayers();
+
+  // Use Canvas renderer for performance
+  const renderer = L.canvas({ padding: 0.5 });
+
+  pts.forEach(p => {
+    let color, opacity;
+    if (mode === 'urban') {
+      const isUrban = p.land_type === 'Urban / Pavement';
+      color = isUrban ? tempColor(p.lst_celsius) : '#333';
+      opacity = isUrban ? 0.85 : 0.08;
+    } else if (mode === 'veg') {
+      const isVeg = p.land_type === 'Dense Vegetation';
+      color = isVeg ? '#52b788' : '#333';
+      opacity = isVeg ? 0.85 : 0.08;
+    } else {
+      color = tempColor(p.lst_celsius);
+      opacity = 0.75;
+    }
+
+    L.circleMarker([p.lat, p.lon], {
+      radius: 3,
+      fillColor: color,
+      fillOpacity: opacity,
+      color: 'transparent',
+      renderer,
+    })
+    .bindTooltip(
+      `<strong>${p.land_type}</strong><br>
+       Temp: ${p.lst_celsius.toFixed(1)}°C<br>
+       NDVI: ${p.ndvi.toFixed(3)}`,
+      { className: 'leaflet-tooltip-dark', sticky: true }
+    )
+    .addTo(canvasLayer);
+  });
+}
+
+/* ================================================================
+   SCROLLAMA — map steps
+   ================================================================ */
+function initScrollama(d) {
+  const scroller = scrollama();
+  scroller.setup({
+    step: '#map-steps .scroll-step',
+    offset: 0.5,
+    debug: false,
+  })
+  .onStepEnter(({ element, index }) => {
+    document.querySelectorAll('#map-steps .scroll-step').forEach(el => el.classList.remove('is-active'));
+    element.classList.add('is-active');
+
+    if (index === 0) renderMapPoints(d, 'all');
+    else if (index === 1) renderMapPoints(d, 'urban');
+    else if (index === 2) renderMapPoints(d, 'veg');
+  });
+}
+
+/* ================================================================
+   SCATTER PLOT (D3)
+   ================================================================ */
+function buildScatter(d) {
+  const el = document.getElementById('scatter-svg');
+  const W = el.parentElement.getBoundingClientRect().width || 460;
+  const H = 420;
+  const margin = { top: 20, right: 20, bottom: 50, left: 54 };
+  const iW = W - margin.left - margin.right;
+  const iH = H - margin.top - margin.bottom;
+
+  const svg = d3.select('#scatter-svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const xScale = d3.scaleLinear().domain([0, 0.85]).range([0, iW]);
+  const yScale = d3.scaleLinear().domain([20, 48]).range([iH, 0]);
+
+  // Grid lines
+  g.append('g').attr('class', 'grid')
+    .call(d3.axisLeft(yScale).tickSize(-iW).tickFormat(''))
+    .call(g2 => { g2.select('.domain').remove(); g2.selectAll('line').style('stroke', 'rgba(255,255,255,0.04)'); });
+
+  g.append('g').attr('class', 'grid')
+    .attr('transform', `translate(0,${iH})`)
+    .call(d3.axisBottom(xScale).tickSize(-iH).tickFormat(''))
+    .call(g2 => { g2.select('.domain').remove(); g2.selectAll('line').style('stroke', 'rgba(255,255,255,0.04)'); });
+
+  // Axes
+  g.append('g').attr('transform', `translate(0,${iH})`)
+    .call(d3.axisBottom(xScale).ticks(6).tickFormat(d => d.toFixed(1)))
+    .call(g2 => { g2.select('.domain').style('stroke', 'rgba(255,255,255,0.15)'); g2.selectAll('text').style('fill', '#888'); g2.selectAll('line').style('stroke', 'rgba(255,255,255,0.15)'); });
+
+  g.append('g')
+    .call(d3.axisLeft(yScale).ticks(6).tickFormat(d => d + '°'))
+    .call(g2 => { g2.select('.domain').style('stroke', 'rgba(255,255,255,0.15)'); g2.selectAll('text').style('fill', '#888'); g2.selectAll('line').style('stroke', 'rgba(255,255,255,0.15)'); });
+
+  // Axis labels
+  g.append('text').attr('x', iW/2).attr('y', iH+42).attr('text-anchor','middle')
+    .style('fill','#888').style('font-size','12px').text('NDVI Vegetation Index →');
+
+  g.append('text').attr('transform','rotate(-90)').attr('x', -iH/2).attr('y', -44)
+    .attr('text-anchor','middle').style('fill','#888').style('font-size','12px').text('Surface Temp (°C) →');
+
+  // Sample for perf (max 2000 points)
+  const sample = d.length > 2000 ? d3.shuffle(d.slice()).slice(0, 2000) : d;
+
+  // Points
+  const circles = g.selectAll('circle').data(sample).join('circle')
+    .attr('cx', p => xScale(p.ndvi))
+    .attr('cy', p => yScale(p.lst_celsius))
+    .attr('r', 2.5)
+    .attr('fill', p => tempColor(p.lst_celsius))
+    .attr('fill-opacity', 0)
+    .attr('stroke', 'none');
+
+  // Animate points in
+  circles.transition().duration(800).delay((d,i) => i * 0.3)
+    .attr('fill-opacity', 0.45);
+
+  // Regression line
+  const xMean = d3.mean(d, p => p.ndvi);
+  const yMean = d3.mean(d, p => p.lst_celsius);
+  const slope = d3.sum(d, p => (p.ndvi - xMean)*(p.lst_celsius - yMean)) /
+                d3.sum(d, p => (p.ndvi - xMean)**2);
+  const intercept = yMean - slope * xMean;
+
+  const x0 = 0.02, x1 = 0.82;
+  g.append('line')
+    .attr('x1', xScale(x0)).attr('y1', yScale(slope*x0+intercept))
+    .attr('x2', xScale(x0)).attr('y2', yScale(slope*x0+intercept))
+    .attr('stroke', '#fc8d59').attr('stroke-width', 2).attr('stroke-dasharray', '4 3')
+    .transition().duration(1000).delay(600)
+    .attr('x2', xScale(x1)).attr('y2', yScale(slope*x1+intercept));
+
+  // Annotation — anchored top-right, away from clipping edge
+  g.append('text')
+    .attr('x', iW).attr('y', 14)
+    .attr('text-anchor', 'end')
+    .style('fill','#fc8d59').style('font-size','11px').style('font-weight','600')
+    .text('↙ more green = cooler')
+    .attr('opacity', 0).transition().delay(1400).duration(400).attr('opacity', 1);
+}
+
+/* ================================================================
+   BAR CHART (D3)
+   ================================================================ */
+function buildBarChart(d) {
+  const order = ['Urban / Pavement', 'Sparse Vegetation', 'Dense Vegetation'];
+  const grouped = order.map(lt => ({
+    land_type: lt,
+    avg_lst: avg(d.filter(p => p.land_type === lt), 'lst_celsius') || 0,
+    count: d.filter(p => p.land_type === lt).length,
+  })).filter(g => g.count > 0);
+
+  const el = document.getElementById('bar-chart');
+  const W = el.getBoundingClientRect().width || 700;
+  const barH = 64, gap = 20;
+  const H = grouped.length * (barH + gap) + 60;
+  const margin = { top: 10, right: 120, bottom: 30, left: 180 };
+  const iW = W - margin.left - margin.right;
+
+  const xScale = d3.scaleLinear()
+    .domain([0, d3.max(grouped, g => g.avg_lst) * 1.08])
+    .range([0, iW]);
+
+  const svg = d3.select('#bar-chart').append('svg')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  grouped.forEach((row, i) => {
+    const y = i * (barH + gap);
+    const color = LAND_COLOR[row.land_type] || '#888';
+
+    // Label
+    g.append('text')
+      .attr('x', -12).attr('y', y + barH/2 + 5)
+      .attr('text-anchor', 'end')
+      .style('fill', '#f0ede8').style('font-size', '13px').style('font-weight', '500')
+      .text(row.land_type);
+
+    // Background track
+    g.append('rect')
+      .attr('x', 0).attr('y', y)
+      .attr('width', iW).attr('height', barH)
+      .attr('rx', 6)
+      .attr('fill', 'rgba(255,255,255,0.03)');
+
+    // Bar
+    g.append('rect')
+      .attr('x', 0).attr('y', y)
+      .attr('width', 0).attr('height', barH)
+      .attr('rx', 6)
+      .attr('fill', color)
+      .attr('fill-opacity', 0.85)
+      .transition().duration(900).delay(i * 150)
+      .attr('width', xScale(row.avg_lst));
+
+    // Temp label
+    g.append('text')
+      .attr('x', xScale(row.avg_lst) + 8)
+      .attr('y', y + barH/2 + 5)
+      .style('fill', color).style('font-size', '18px').style('font-weight', '800')
+      .attr('opacity', 0)
+      .text(fmt(row.avg_lst))
+      .transition().delay(900 + i*150).duration(300).attr('opacity', 1);
+
+    // Count
+    g.append('text')
+      .attr('x', xScale(row.avg_lst) + 8)
+      .attr('y', y + barH/2 + 22)
+      .style('fill', '#666').style('font-size', '11px')
+      .attr('opacity', 0)
+      .text(`${row.count.toLocaleString()} pixels`)
+      .transition().delay(900 + i*150).duration(300).attr('opacity', 1);
+  });
+
+  // X axis
+  g.append('g').attr('transform', `translate(0,${H - margin.bottom - margin.top})`)
+    .call(d3.axisBottom(xScale).ticks(5).tickFormat(d => d + '°C'))
+    .call(g2 => { g2.select('.domain').style('stroke', 'rgba(255,255,255,0.1)'); g2.selectAll('text').style('fill','#666'); g2.selectAll('line').style('stroke','rgba(255,255,255,0.1)'); });
+}
+
+/* ================================================================
+   EQUITY MAP (second Leaflet map)
+   ================================================================ */
+const TORONTO_NEIGHBOURHOODS = [
+  { name: 'Etobicoke Industrial', lat: 43.680, lon: -79.565, hot: true,  filterType: 'Urban / Pavement',  desc: 'Heavy industry & warehouse corridors, minimal tree cover' },
+  { name: 'Regent Park / Downtown East', lat: 43.659, lon: -79.360, hot: true,  filterType: 'Urban / Pavement',  desc: 'High-density, historically underinvested, limited green space' },
+  { name: 'Scarborough Town Centre', lat: 43.775, lon: -79.258, hot: true,  filterType: 'Urban / Pavement',  desc: 'Commercial sprawl with large parking lots and few street trees' },
+  { name: 'High Park / Roncesvalles', lat: 43.648, lon: -79.464, hot: false, filterType: 'Dense Vegetation', desc: 'One of Toronto\'s largest parks; shades 160 hectares of land' },
+  { name: 'Don Valley / Ravine System', lat: 43.715, lon: -79.340, hot: false, filterType: 'Dense Vegetation', desc: 'Natural ravine provides a city-wide cooling corridor' },
+  { name: 'Rouge National Urban Park', lat: 43.833, lon: -79.182, hot: false, filterType: 'Dense Vegetation', desc: 'Canada\'s first urban national park, a benchmark for cool greenspace' },
+];
+
+function buildEquityMap(d) {
+  const eMap = L.map('equity-map', {
+    center: [43.72, -79.38],
+    zoom: 10,
+    zoomControl: true,
+    scrollWheelZoom: false,
+    attributionControl: false,
+  });
+
+  L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 19 }).addTo(eMap);
+
+  // Heat dots (small, subtle)
+  const renderer = L.canvas({ padding: 0.5 });
+  const sample = d.length > 1500 ? d3.shuffle(d.slice()).slice(0, 1500) : d;
+  sample.forEach(p => {
+    L.circleMarker([p.lat, p.lon], {
+      radius: 2.5,
+      fillColor: tempColor(p.lst_celsius),
+      fillOpacity: 0.35,
+      color: 'transparent',
+      renderer,
+    }).addTo(eMap);
+  });
+
+  // Neighbourhood markers
+  TORONTO_NEIGHBOURHOODS.forEach(n => {
+    const color = n.hot ? '#e34a33' : '#52b788';
+    const icon = L.divIcon({
+      html: `<div style="
+        width:12px;height:12px;border-radius:50%;
+        background:${color};border:2px solid rgba(255,255,255,0.4);
+        box-shadow:0 0 0 4px ${color}33;
+      "></div>`,
+      className: '',
+      iconSize: [12, 12],
+    });
+
+    L.marker([n.lat, n.lon], { icon })
+      .bindPopup(`
+        <div style="font-family:Inter,sans-serif;padding:4px;min-width:200px;">
+          <strong style="font-size:13px;color:${color}">${n.name}</strong><br>
+          <span style="font-size:11px;color:#ccc;line-height:1.5">${n.desc}</span>
+        </div>
+      `, { maxWidth: 240 })
+      .addTo(eMap);
+  });
+
+  // Cards below map
+  const container = document.getElementById('nbhd-cards');
+  TORONTO_NEIGHBOURHOODS.forEach(n => {
+    const radLat = 0.06, radLon = 0.08;
+    const close = d.filter(p =>
+      Math.abs(p.lat - n.lat) < radLat &&
+      Math.abs(p.lon - n.lon) < radLon &&
+      p.land_type === n.filterType
+    );
+    const estTemp = close.length > 0 ? avg(close, 'lst_celsius') : null;
+
+    const card = document.createElement('div');
+    card.className = 'nbhd-card';
+    card.innerHTML = `
+      <div class="nbhd-name">${n.name}</div>
+      <div class="nbhd-temp ${n.hot ? 'hot' : 'cool'}">${estTemp !== null ? fmt(estTemp) : 'No data nearby'}</div>
+      <div class="nbhd-desc">${n.desc}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+/* ================================================================
+   BANNER STATS
+   ================================================================ */
+function buildBannerStats(d) {
+  const urban = d.filter(p => p.land_type === 'Urban / Pavement');
+  const veg   = d.filter(p => p.land_type === 'Dense Vegetation');
+  if (!urban.length || !veg.length) return;
+  const uAvg = avg(urban, 'lst_celsius');
+  const vAvg = avg(veg, 'lst_celsius');
+  document.getElementById('banner-urban').textContent = fmt(uAvg);
+  document.getElementById('banner-veg').textContent   = fmt(vAvg);
+  document.getElementById('banner-gap').textContent   = '+' + (uAvg - vAvg).toFixed(1) + '°C';
+}
+
+/* ================================================================
+   CALCULATOR
+   ================================================================ */
+const ACTIONS = [
+  {
+    id: 'trees',
+    name: 'Plant 2 mature shade trees',
+    hint: 'Reduces nearby surface temp & AC load',
+    tempReduction: { small: 1.5, medium: 2.0, large: 2.5 },
+    savings: { detached: 220, semi: 160, condo: 0 },
+    co2: 40,
+    applicable: ['detached','semi'],
+  },
+  {
+    id: 'cool-roof',
+    name: 'Install a cool or green roof',
+    hint: 'Reflects sunlight, reduces indoor temp',
+    tempReduction: { small: 1.0, medium: 1.5, large: 1.5 },
+    savings: { detached: 180, semi: 130, condo: 90 },
+    co2: 25,
+    applicable: ['detached','semi','condo'],
+  },
+  {
+    id: 'permeable',
+    name: 'Replace driveway with permeable paving',
+    hint: 'Reduces runoff & local heat absorption',
+    tempReduction: { small: 0.3, medium: 0.5, large: 0.8 },
+    savings: { detached: 60, semi: 40, condo: 0 },
+    co2: 8,
+    applicable: ['detached','semi'],
+  },
+  {
+    id: 'garden',
+    name: 'Add a rooftop or balcony garden',
+    hint: 'Insulates roof, cools through evaporation',
+    tempReduction: { small: 0.8, medium: 1.0, large: 1.2 },
+    savings: { detached: 100, semi: 80, condo: 50 },
+    co2: 15,
+    applicable: ['detached','semi','condo'],
+  },
+  {
+    id: 'blinds',
+    name: 'Install exterior blinds / solar shading',
+    hint: 'Blocks heat before it enters windows',
+    tempReduction: { small: 0.3, medium: 0.3, large: 0.3 },
+    savings: { detached: 80, semi: 60, condo: 45 },
+    co2: 12,
+    applicable: ['detached','semi','condo'],
+  },
+];
+
+let calcState = { homeType: 'detached', lotSize: 'medium', selected: new Set() };
+
+function buildCalculator() {
+  const list = document.getElementById('actions-list');
+
+  ACTIONS.forEach(action => {
+    const item = document.createElement('label');
+    item.className = 'action-item';
+    item.dataset.id = action.id;
+
+    const savingsLabel = Object.values(action.savings).some(v => v > 0)
+      ? `~$${Math.max(...Object.values(action.savings))}/yr`
+      : '';
+
+    item.innerHTML = `
+      <input type="checkbox" value="${action.id}" />
+      <div class="check-box">
+        <svg class="check-icon" width="10" height="8" viewBox="0 0 10 8" fill="none">
+          <path d="M1 4l3 3 5-6" stroke="#0a0a0a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="action-meta">
+        <div class="action-name">${action.name}</div>
+        <div class="action-hint">${action.hint}</div>
+      </div>
+      ${savingsLabel ? `<div class="action-saving">${savingsLabel}</div>` : ''}
+    `;
+
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (calcState.selected.has(action.id)) {
+        calcState.selected.delete(action.id);
+        item.classList.remove('selected');
+      } else {
+        calcState.selected.add(action.id);
+        item.classList.add('selected');
+      }
+      updateCalcResults();
+    });
+
+    list.appendChild(item);
+  });
+
+  // Home type buttons
+  document.querySelectorAll('#home-type-btns .pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#home-type-btns .pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      calcState.homeType = btn.dataset.val;
+      updateCalcResults();
+    });
+  });
+
+  document.querySelectorAll('#lot-size-btns .pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#lot-size-btns .pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      calcState.lotSize = btn.dataset.val;
+      updateCalcResults();
+    });
+  });
+
+  updateCalcResults();
+}
+
+function updateCalcResults() {
+  let totalSavings = 0, totalTemp = 0, totalCo2 = 0;
+
+  calcState.selected.forEach(id => {
+    const a = ACTIONS.find(x => x.id === id);
+    if (!a) return;
+    const applicable = a.applicable.includes(calcState.homeType);
+    totalSavings += applicable ? (a.savings[calcState.homeType] || 0) : 0;
+    totalTemp    += (a.tempReduction[calcState.lotSize] || 0);
+    totalCo2     += a.co2;
+  });
+
+  // Animate number
+  const savEl = document.getElementById('result-savings');
+  const prev = parseInt(savEl.textContent.replace(/\D/g,'')) || 0;
+  animCountInt(savEl, prev, totalSavings, '$', null, '/yr');
+
+  document.getElementById('result-temp').textContent = totalTemp.toFixed(1) + '°C';
+  document.getElementById('result-co2').textContent  = totalCo2 + ' kg';
+
+}
+
+function animCountInt(el, from, to, prefix, suffix, append) {
+  const dur = 500, start = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / dur);
+    const ease = 1 - (1-t)*(1-t);
+    const v = Math.round(from + (to - from) * ease);
+    el.textContent = prefix + v.toLocaleString() + (append || '');
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+/* ================================================================
+   TOOLTIP STYLE (injected)
+   ================================================================ */
+const style = document.createElement('style');
+style.textContent = `
+  .leaflet-tooltip-dark {
+    background: rgba(10,10,10,0.9) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: #f0ede8 !important;
+    font-family: Inter, sans-serif !important;
+    font-size: 12px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
+    padding: 8px 10px !important;
+  }
+  .leaflet-tooltip-dark::before { border-top-color: rgba(255,255,255,0.08) !important; }
+  .leaflet-popup-content-wrapper {
+    background: rgba(16,16,16,0.96) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7) !important;
+  }
+  .leaflet-popup-tip { background: rgba(16,16,16,0.96) !important; }
+  .leaflet-popup-close-button { color: #888 !important; }
+`;
+document.head.appendChild(style);
+
+/* ── Kick off ─────────────────────────────────────────────────── */
+init();
+</script>
+</body>
+</html>
