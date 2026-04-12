@@ -1,0 +1,13 @@
+# Blog drafts
+blog-post.md
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor
+.vscode/

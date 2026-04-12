@@ -178,6 +178,16 @@
       text-transform: uppercase;
       color: var(--accent);
       margin-bottom: 14px;
+      display: block;
+    }
+
+    a.section-label-link {
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a.section-label-link:hover::after {
+      content: ' #';
+      opacity: 0.4;
     }
 
     .section-title {
@@ -521,6 +531,8 @@
     .action-item.selected .check-box { background: var(--cool); border-color: var(--cool); }
     .check-icon { display: none; }
     .action-item.selected .check-icon { display: block; }
+    .action-item.action-na { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+    .action-item.action-na .action-name { text-decoration: line-through; }
 
     .action-meta { flex: 1; min-width: 0; }
     .action-name { font-size: 0.88rem; font-weight: 500; color: var(--text); }
@@ -568,6 +580,15 @@
     .temp-val { color: var(--heat-3); }
     .save-val { color: var(--cool); }
     .co2-val  { color: #7eb8d4; }
+
+    .calc-note {
+      padding: 10px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.67rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      opacity: 0.7;
+    }
 
     .calc-cta {
       display: flex;
@@ -858,7 +879,7 @@
 <!-- ── Section 1: Scrollytelling Map ──────────────────────────── -->
 <section class="scroll-section" id="map-scroll-section">
   <div style="padding: 80px 0 40px;">
-    <div class="section-label">01 · The Heat Map</div>
+    <a class="section-label section-label-link" href="#map-scroll-section">01 · The Heat Map</a>
     <h2 class="section-title">Where Does the Heat Collect?</h2>
     <p class="section-body">
       Scroll down to peel back the layers and see where heat collects across the city.
@@ -936,7 +957,7 @@
   <div class="section" style="padding-top: 80px; padding-bottom: 80px;">
     <div class="scatter-layout">
       <div>
-        <div class="section-label">02 · Vegetation &amp; Temperature</div>
+        <a class="section-label section-label-link" href="#scatter-section">02 · Vegetation &amp; Temperature</a>
         <h2 class="section-title">More Green = More Cool</h2>
         <p class="section-body">
           The <strong>NDVI</strong> (Normalized Difference Vegetation Index)
@@ -966,7 +987,7 @@
 
 <!-- ── Section 3: Bar chart ───────────────────────────────────── -->
 <div id="bar-section">
-  <div class="section-label">03 · Land Type Comparison</div>
+  <a class="section-label section-label-link" href="#bar-section">03 · Land Type Comparison</a>
   <h2 class="section-title">The Numbers Tell the Story</h2>
   <p class="section-body">
     When we group every satellite pixel by its land cover type, the
@@ -981,7 +1002,7 @@
 <!-- ── Section 4: Equity map ──────────────────────────────────── -->
 <section id="equity-section">
   <div class="section" style="padding-top: 80px; padding-bottom: 80px;">
-    <div class="section-label">04 · Heat Equity</div>
+    <a class="section-label section-label-link" href="#equity-section">04 · Heat Equity</a>
     <h2 class="section-title">Who Bears the Burden?</h2>
     <p class="section-body">
       Heat doesn't distribute randomly. Areas with <strong>less tree canopy,
@@ -1000,7 +1021,7 @@
 
 <!-- ── Section 5: Calculator ──────────────────────────────────── -->
 <section id="calc-section">
-  <div class="section-label">05 · Take Action</div>
+  <a class="section-label section-label-link" href="#calc-section">05 · Take Action</a>
   <h2 class="section-title">What Can Homeowners Do?</h2>
   <p class="section-body">
     Every tree planted, every cool roof installed, and every permeable
@@ -1017,14 +1038,6 @@
           <button class="pill active" data-val="detached">Detached</button>
           <button class="pill" data-val="semi">Semi</button>
           <button class="pill" data-val="condo">Condo</button>
-        </div>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Lot</span>
-        <div class="pill-group" id="lot-size-btns">
-          <button class="pill" data-val="small">Small</button>
-          <button class="pill active" data-val="medium">Medium</button>
-          <button class="pill" data-val="large">Large</button>
         </div>
       </div>
     </div>
@@ -1048,19 +1061,30 @@
       </div>
     </div>
 
-    <!-- CTA links -->
-    <div class="calc-cta">
-      <a class="cta-link" href="https://www.toronto.ca/city-government/accountability-operations-customer-service/long-term-vision-plans-and-strategies/toronto-biodiversity-strategy/urban-forest/" target="_blank" rel="noopener">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm.5 7.5h-1V5h1v3.5zm0-4.5h-1V3h1v1z" fill="currentColor"/></svg>
-        Tree Canopy Program
+    <!-- Methodology note -->
+    <div class="calc-note">
+      Estimates based on Toronto avg. home (~9,000 kWh/yr, ~$0.13/kWh after OER rebate).
+      Cooling savings modelled from DOE, NRC Canada &amp; Toronto Hydro data. Combined savings use
+      diminishing-returns stacking. CO₂ = Ontario grid factor (0.04 kg/kWh) + direct sequestration.
+    </div>
+
+    <!-- CTA links — populated dynamically based on selected actions -->
+    <div class="calc-cta" id="calc-cta">
+      <a class="cta-link" href="https://www.toronto.ca/services-payments/water-environment/trees/tree-planting/" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.5 1v4.5H11v1H6.5V11h-1V6.5H1v-1h4.5V1z" fill="currentColor"/></svg>
+        Tree Planting Program
       </a>
-      <a class="cta-link" href="https://www.toronto.ca/services-payments/water-environment/managing-rain-melting-snow/green-roofs/" target="_blank" rel="noopener">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm.5 7.5h-1V5h1v3.5zm0-4.5h-1V3h1v1z" fill="currentColor"/></svg>
+      <a class="cta-link" href="https://www.toronto.ca/city-government/planning-development/official-plan-guidelines/green-roofs/" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.5 1v4.5H11v1H6.5V11h-1V6.5H1v-1h4.5V1z" fill="currentColor"/></svg>
         Green Roof Bylaw
       </a>
-      <a class="cta-link" href="https://www.toronto.ca/community-people/health-wellness-care/health-programs-advice/hot-weather-health/" target="_blank" rel="noopener">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm.5 7.5h-1V5h1v3.5zm0-4.5h-1V3h1v1z" fill="currentColor"/></svg>
+      <a class="cta-link" href="https://www.toronto.ca/community-people/health-wellness-care/keeping-toronto-healthy/hot-weather/" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.5 1v4.5H11v1H6.5V11h-1V6.5H1v-1h4.5V1z" fill="currentColor"/></svg>
         Cooling Centres
+      </a>
+      <a class="cta-link" href="https://www.toronto.ca/home-energy-loans-program/" target="_blank" rel="noopener">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6.5 1v4.5H11v1H6.5V11h-1V6.5H1v-1h4.5V1z" fill="currentColor"/></svg>
+        Home Energy Loans
       </a>
     </div>
   </div>
@@ -1598,56 +1622,100 @@ function buildBannerStats(d) {
 
 /* ================================================================
    CALCULATOR
+   ================================================================
+   Model methodology:
+   - Toronto avg home: ~9,000 kWh/yr electricity; cooling ~30% of that
+     = ~2,700 kWh cooling/yr × $0.13/kWh (net after OER rebate) ≈ $350/yr AC spend
+   - Savings are % reductions of AC spend, scaled by home type (roof area / sun exposure)
+   - tempReduction: local surface/air temp benefit near the home (°C), varies by lot size
+   - co2: kg CO₂/yr avoided — combines Ontario grid (0.04 kg/kWh) × saved kWh
+     + direct sequestration for trees (22 kg/tree/yr avg for Toronto urban trees)
+   Sources: DOE, NRC Canada, Toronto Hydro, USDA Forest Service, Ontario Energy Board
    ================================================================ */
+
+// Toronto baseline: annual AC spend by home type
+// Detached: full roof + walls exposed → ~$390/yr AC
+// Semi-detached: one shared wall, similar roof → ~$290/yr AC
+// Condo: only ceiling/windows matter → ~$180/yr AC
+const AC_BASELINE = { detached: 390, semi: 290, condo: 180 };
+
+// Ontario grid emission factor (kg CO₂/kWh) — relatively clean grid (hydro/nuclear)
+const GRID_CO2_FACTOR = 0.04;
+
 const ACTIONS = [
   {
     id: 'trees',
     name: 'Plant 2 mature shade trees',
-    hint: 'Reduces nearby surface temp & AC load',
-    tempReduction: { small: 1.5, medium: 2.0, large: 2.5 },
-    savings: { detached: 220, semi: 160, condo: 0 },
-    co2: 40,
-    applicable: ['detached','semi'],
+    hint: 'Strategic shade cuts AC load 25–35% · each tree sequesters ~22 kg CO₂/yr',
+    // % reduction of AC baseline — research shows 25–35% for well-placed trees in Toronto
+    // Condos can't plant ground trees; savings = 0
+    savingsPct: { detached: 0.30, semi: 0.25, condo: 0.0 },
+    tempReduction: 1.8,
+    // 2 trees × 22 kg seq/yr + grid CO₂ saved from reduced AC
+    co2Base: 44, // direct sequestration (fixed regardless of home type)
+    applicable: ['detached', 'semi'],
+    link: 'https://www.toronto.ca/services-payments/water-environment/trees/private-tree-bylaw/',
+    linkLabel: 'Toronto Tree Programs',
   },
   {
     id: 'cool-roof',
     name: 'Install a cool or green roof',
-    hint: 'Reflects sunlight, reduces indoor temp',
-    tempReduction: { small: 1.0, medium: 1.5, large: 1.5 },
-    savings: { detached: 180, semi: 130, condo: 90 },
-    co2: 25,
-    applicable: ['detached','semi','condo'],
+    hint: 'Reflective/vegetated surface reduces cooling demand 20–25% in Toronto climate',
+    // NRC Canada & DOE: 20–25% summer cooling savings; condo only owns ceiling, less impact
+    savingsPct: { detached: 0.22, semi: 0.18, condo: 0.10 },
+    tempReduction: 1.2,
+    co2Base: 0, // calculated from grid savings only
+    applicable: ['detached', 'semi', 'condo'],
+    link: 'https://www.toronto.ca/services-payments/water-environment/managing-rain-melting-snow/green-roofs/',
+    linkLabel: 'Green Roof Bylaw',
   },
   {
     id: 'permeable',
     name: 'Replace driveway with permeable paving',
-    hint: 'Reduces runoff & local heat absorption',
-    tempReduction: { small: 0.3, medium: 0.5, large: 0.8 },
-    savings: { detached: 60, semi: 40, condo: 0 },
-    co2: 8,
-    applicable: ['detached','semi'],
+    hint: 'Reduces local surface temp 3–5°C via evaporative cooling · lowers runoff',
+    // No direct AC savings (not attached to building thermal envelope)
+    // Indirect benefit: cooler surroundings reduce outdoor radiant heat gain slightly (~3%)
+    savingsPct: { detached: 0.03, semi: 0.02, condo: 0.0 },
+    tempReduction: 1.2,
+    co2Base: 0,
+    applicable: ['detached', 'semi'],
+    link: 'https://www.toronto.ca/services-payments/water-environment/managing-rain-melting-snow/lot-grading-drainage/',
+    linkLabel: 'Toronto Drainage Program',
   },
   {
-    id: 'garden',
-    name: 'Add a rooftop or balcony garden',
-    hint: 'Insulates roof, cools through evaporation',
-    tempReduction: { small: 0.8, medium: 1.0, large: 1.2 },
-    savings: { detached: 100, semi: 80, condo: 50 },
-    co2: 15,
-    applicable: ['detached','semi','condo'],
+    id: 'green-wall',
+    name: 'Add a living / green wall or vertical garden',
+    hint: 'Insulates walls + evapotranspiration cools 15–25% of AC load on exposed facades',
+    // Univ. of Plymouth: 31% heat loss reduction; cooling studies: 15–25% savings
+    savingsPct: { detached: 0.18, semi: 0.14, condo: 0.12 },
+    tempReduction: 0.9,
+    co2Base: 5, // modest plant sequestration
+    applicable: ['detached', 'semi', 'condo'],
+    link: 'https://www.toronto.ca/services-payments/water-environment/managing-rain-melting-snow/green-roofs/',
+    linkLabel: 'Green Infrastructure Guide',
   },
   {
     id: 'blinds',
-    name: 'Install exterior blinds / solar shading',
-    hint: 'Blocks heat before it enters windows',
-    tempReduction: { small: 0.3, medium: 0.3, large: 0.3 },
-    savings: { detached: 80, semi: 60, condo: 45 },
-    co2: 12,
-    applicable: ['detached','semi','condo'],
+    name: 'Install exterior blinds or solar shading',
+    hint: 'Exterior shades block up to 77% of solar gain · saves 15–25% on cooling bills',
+    // DOE/PNNL field studies: 15–25% whole-home cooling savings with exterior shades
+    savingsPct: { detached: 0.20, semi: 0.17, condo: 0.22 }, // condos: windows = main heat path
+    tempReduction: 0.3, // minimal outdoor temp benefit
+    co2Base: 0,
+    applicable: ['detached', 'semi', 'condo'],
+    link: 'https://www.toronto.ca/community-people/housing-shelter/renters/energy-efficiency/',
+    linkLabel: 'Home Energy Efficiency',
   },
 ];
 
-let calcState = { homeType: 'detached', lotSize: 'medium', selected: new Set() };
+let calcState = { homeType: 'detached', selected: new Set() };
+
+function getActionSavings(action) {
+  // Returns dollar savings for current home type
+  const base = AC_BASELINE[calcState.homeType] || 0;
+  const pct  = action.savingsPct[calcState.homeType] || 0;
+  return Math.round(base * pct);
+}
 
 function buildCalculator() {
   const list = document.getElementById('actions-list');
@@ -1656,10 +1724,6 @@ function buildCalculator() {
     const item = document.createElement('label');
     item.className = 'action-item';
     item.dataset.id = action.id;
-
-    const savingsLabel = Object.values(action.savings).some(v => v > 0)
-      ? `~$${Math.max(...Object.values(action.savings))}/yr`
-      : '';
 
     item.innerHTML = `
       <input type="checkbox" value="${action.id}" />
@@ -1672,11 +1736,13 @@ function buildCalculator() {
         <div class="action-name">${action.name}</div>
         <div class="action-hint">${action.hint}</div>
       </div>
-      ${savingsLabel ? `<div class="action-saving">${savingsLabel}</div>` : ''}
+      <div class="action-saving" data-id="${action.id}"></div>
     `;
 
     item.addEventListener('click', (e) => {
       e.preventDefault();
+      const applicable = action.applicable.includes(calcState.homeType);
+      if (!applicable) return; // silently ignore clicks on non-applicable items
       if (calcState.selected.has(action.id)) {
         calcState.selected.delete(action.id);
         item.classList.remove('selected');
@@ -1696,42 +1762,89 @@ function buildCalculator() {
       document.querySelectorAll('#home-type-btns .pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       calcState.homeType = btn.dataset.val;
+      // Deselect actions that are no longer applicable
+      ACTIONS.forEach(a => {
+        if (!a.applicable.includes(calcState.homeType)) {
+          calcState.selected.delete(a.id);
+          const item = document.querySelector(`.action-item[data-id="${a.id}"]`);
+          if (item) item.classList.remove('selected');
+        }
+      });
+      refreshActionItems();
       updateCalcResults();
     });
   });
 
-  document.querySelectorAll('#lot-size-btns .pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#lot-size-btns .pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      calcState.lotSize = btn.dataset.val;
-      updateCalcResults();
-    });
-  });
-
+  refreshActionItems();
   updateCalcResults();
+}
+
+function refreshActionItems() {
+  ACTIONS.forEach(action => {
+    const item = document.querySelector(`.action-item[data-id="${action.id}"]`);
+    if (!item) return;
+    const applicable = action.applicable.includes(calcState.homeType);
+    item.classList.toggle('action-na', !applicable);
+
+    const savEl = item.querySelector('.action-saving');
+    if (savEl) {
+      if (!applicable) {
+        savEl.textContent = 'N/A';
+        savEl.style.opacity = '0.3';
+        savEl.style.color = 'var(--text-muted)';
+      } else {
+        const dollars = getActionSavings(action);
+        savEl.textContent = dollars > 0 ? `~$${dollars}/yr` : '';
+        savEl.style.opacity = '0.8';
+        savEl.style.color = 'var(--cool)';
+      }
+    }
+  });
 }
 
 function updateCalcResults() {
   let totalSavings = 0, totalTemp = 0, totalCo2 = 0;
 
+  // Diminishing returns: stacking multiple actions has overlap (same AC kWh can't be
+  // saved twice). We model this with a simple multiplicative remaining-fraction approach.
+  // e.g. actions saving 30% + 22% = 1 - (0.70 × 0.78) = 45.4% combined (not 52%)
+  let remainingFraction = 1.0;
+
   calcState.selected.forEach(id => {
     const a = ACTIONS.find(x => x.id === id);
     if (!a) return;
     const applicable = a.applicable.includes(calcState.homeType);
-    totalSavings += applicable ? (a.savings[calcState.homeType] || 0) : 0;
-    totalTemp    += (a.tempReduction[calcState.lotSize] || 0);
-    totalCo2     += a.co2;
+    if (!applicable) return;
+
+    const pct = a.savingsPct[calcState.homeType] || 0;
+    const base = AC_BASELINE[calcState.homeType] || 0;
+
+    // Apply this action's savings to the remaining uncaptured fraction
+    const dollarsSaved = Math.round(base * pct * remainingFraction);
+    totalSavings += dollarsSaved;
+    remainingFraction *= (1 - pct);
+
+    totalTemp += (a.tempReduction || 0);
+
+    // CO₂: direct sequestration + grid savings
+    const kwhSaved = dollarsSaved / 0.13; // $0.13/kWh net rate
+    totalCo2 += Math.round(a.co2Base + kwhSaved * GRID_CO2_FACTOR);
   });
 
-  // Animate number
+  // Animate savings
   const savEl = document.getElementById('result-savings');
   const prev = parseInt(savEl.textContent.replace(/\D/g,'')) || 0;
   animCountInt(savEl, prev, totalSavings, '$', null, '/yr');
 
-  document.getElementById('result-temp').textContent = totalTemp.toFixed(1) + '°C';
-  document.getElementById('result-co2').textContent  = totalCo2 + ' kg';
+  // Cap temp display at a reasonable max (you can't cool infinitely)
+  const tempDisplay = Math.min(totalTemp, 6.0);
+  document.getElementById('result-temp').textContent = tempDisplay.toFixed(1) + '°C';
 
+  const prevCo2 = parseInt(document.getElementById('result-co2').textContent) || 0;
+  animCountInt(document.getElementById('result-co2'), prevCo2, totalCo2, '', null, ' kg');
+
+  // Update savings labels dynamically when home type changes
+  refreshActionItems();
 }
 
 function animCountInt(el, from, to, prefix, suffix, append) {
